@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Web;
 using System.Web.Mvc;
+using WebBanHangOnline.DesignPatterns.BehavioralPatterns.Strategy;
 using WebBanHangOnline.Models;
 using WebBanHangOnline.Models.EF;
 
@@ -13,6 +14,7 @@ namespace WebBanHangOnline.Areas.Admin.Controllers
     public class ProductsController : Controller
     {
         private ApplicationDbContext db = new ApplicationDbContext();
+        private Context context;
         // GET: Admin/Products
         public ActionResult Index(int? page)
         {
@@ -94,13 +96,17 @@ namespace WebBanHangOnline.Areas.Admin.Controllers
         [ValidateAntiForgeryToken]
         public ActionResult Edit(Product model)
         {
+            IStrategy editStrategy = new EditStrategy(model, db);
+            context = new Context(editStrategy);
             if (ModelState.IsValid)
             {
-                model.ModifiedDate = DateTime.Now;
-                model.Alias = WebBanHangOnline.Models.Common.Filter.FilterChar(model.Title);
-                db.Products.Attach(model);
-                db.Entry(model).State = System.Data.Entity.EntityState.Modified;
-                db.SaveChanges();
+                //model.ModifiedDate = DateTime.Now;
+                //model.Alias = WebBanHangOnline.Models.Common.Filter.FilterChar(model.Title);
+                //db.Products.Attach(model);
+                //db.Entry(model).State = System.Data.Entity.EntityState.Modified;
+                //db.SaveChanges();
+
+                context.Execute();
                 return RedirectToAction("Index");
             }
             return View(model);
@@ -109,20 +115,23 @@ namespace WebBanHangOnline.Areas.Admin.Controllers
         [HttpPost]
         public ActionResult Delete(int id)
         {
-            var item = db.Products.Find(id);
-            if (item != null)
+            Product product = db.Products.Find(id);
+            IStrategy removeStrategy = new RemoveStrategy(id, db, product);
+            context = new Context(removeStrategy);
+            if (product != null)
             {
-                var checkImg = item.ProductImage.Where(x => x.ProductId == item.Id);
-                if (checkImg != null)
-                {
-                    foreach(var img in checkImg)
-                    {
-                        db.ProductImages.Remove(img);
-                        db.SaveChanges();
-                    }
-                }
-                db.Products.Remove(item);
-                db.SaveChanges();
+                //var checkImg = product.ProductImage.Where(x => x.ProductId == product.Id);
+                //if (checkImg != null)
+                //{
+                //    foreach(var img in checkImg)
+                //    {
+                //        db.ProductImages.Remove(img);
+                //        db.SaveChanges();
+                //    }
+                //}
+                //db.Products.Remove(product);
+                //db.SaveChanges();
+                context.Execute();
                 return Json(new { success = true });
             }
 
@@ -182,21 +191,24 @@ namespace WebBanHangOnline.Areas.Admin.Controllers
         public ActionResult Duplicate(Product model, int id)
         {
             Product product = db.Products.Find(id);
+            IStrategy dulicateStrategy = new DuplicateStrategy(model, db, id, product);
+            context = new Context(dulicateStrategy);
             if (product != null)
             {
-                var productImages = db.ProductImages
-                              .Where(p => p.ProductId == id)
-                              .ToList();
+                //var productImages = db.ProductImages
+                //              .Where(p => p.ProductId == id)
+                //              .ToList();
 
-                model = (Product)product.Clone();
-                db.Products.Add(model);
-                db.SaveChanges();
+                //model = (Product)product.Clone();
+                //db.Products.Add(model);
+                //db.SaveChanges();
 
-                foreach (var productImage in productImages)
-                {
-                    db.ProductImages.Add(new ProductImage() { ProductId = model.Id, Image = productImage.Image, IsDefault = productImage.IsDefault });
-                }
-                db.SaveChanges();
+                //foreach (var productImage in productImages)
+                //{
+                //    db.ProductImages.Add(new ProductImage() { ProductId = model.Id, Image = productImage.Image, IsDefault = productImage.IsDefault });
+                //}
+                //db.SaveChanges();
+                context.Execute();
                 return RedirectToAction("Index");
             }
             return View(model);
