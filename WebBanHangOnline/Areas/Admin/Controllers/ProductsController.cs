@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Web;
 using System.Web.Mvc;
-using WebBanHangOnline.DesignPatterns.Prototype;
 using WebBanHangOnline.Models;
 using WebBanHangOnline.Models.EF;
 
@@ -172,6 +171,35 @@ namespace WebBanHangOnline.Areas.Admin.Controllers
             }
 
             return Json(new { success = false });
+        }
+        public ActionResult Duplicate(int id)   // tạo view để hiển thị trong prototype
+        {
+            ViewBag.ProductCategory = new SelectList(db.ProductCategories.ToList(), "Id", "Title"); //view cái sản phẩm sắp clone
+            var item = db.Products.Find(id);
+            return View(item);
+        }
+        [HttpPost]
+        public ActionResult Duplicate(Product model, int id)
+        {
+            Product product = db.Products.Find(id);
+            if (product != null)
+            {
+                var productImages = db.ProductImages
+                              .Where(p => p.ProductId == id)
+                              .ToList();
+
+                model = (Product)product.Clone();
+                db.Products.Add(model);
+                db.SaveChanges();
+
+                foreach (var productImage in productImages)
+                {
+                    db.ProductImages.Add(new ProductImage() { ProductId = model.Id, Image = productImage.Image, IsDefault = productImage.IsDefault });
+                }
+                db.SaveChanges();
+                return RedirectToAction("Index");
+            }
+            return View(model);
         }
     }
 }
